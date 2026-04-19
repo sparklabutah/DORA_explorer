@@ -1,0 +1,28 @@
+# TALE-Suite + custom agents (HF scoring in lambda-* agents needs torch).
+# Python: see pyproject.toml (requires-python >= 3.12).
+tatsu==5.8.3
+gymnasium>=1.0.0
+jericho>=3.3.0
+textworld[pddl]>=1.6.2rc3
+textworld-express>=1.1.0rc5
+scienceworld>=1.2.2
+discoveryworld
+
+alfworld>=0.4.0
+
+termcolor
+wandb
+numpy>=1.26.0
+pandas>=2.0.0
+tqdm>=4.66.0
+
+llm>=0.27.1
+llm-anthropic
+llm-gemini
+llm-azure-openai
+anthropic
+google-genai
+tiktoken>=0.11.0
+tenacity
+torch>=2.0.0
+transformers>=4.40.0

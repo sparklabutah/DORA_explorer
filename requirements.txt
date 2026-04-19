@@ -1,0 +1,3 @@
+# Root: MAB stack only (light install). TALE-Suite installs its own deps via
+# `pip install -e tale-suite/` (see tale-suite/requirements.txt).
+-r mab/requirements.txt

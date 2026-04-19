@@ -1,0 +1,14 @@
+# Optional: conda env for one-shot setup (see setup.sh).
+# Not required if you use `python -m venv` + pip only — but useful on clusters.
+#
+# Python 3.12 matches tale-suite/pyproject.toml (requires-python >= 3.12).
+# MAB-only users can still use 3.12 without installing tale-suite deps.
+name: dora-paper-code
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - setuptools
+  - wheel

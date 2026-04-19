@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tale-suite"
+description = "TALES: Text-Adventure Learning Environment Suite"
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["dependencies", "version"]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+version = {attr = "tales.version.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = ["wandb/*", "logs/*", "website/*"]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/microsoft/tale-suite"
+"Bug Tracker" = "https://github.com/microsoft/tale-suite/issues"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+known_third_party = ["wandb"]
