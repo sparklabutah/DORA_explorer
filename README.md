@@ -1,4 +1,4 @@
-<h1 align="center"> DORA: Directed exploration (MAB + TALE-Suite) </h1>
+<h1 align="center"> DORA Explorer: Improving the Exploration Ability of LLMs Without Training </h1>
 
 <p align="center">
   <a href="https://dora-explore.github.io/"><img src="https://img.shields.io/badge/Project%20Page-dora--explore.github.io-4285F4?style=flat&logo=homeassistant&logoColor=white&color=006A4E&labelColor=gray" alt="Project page"/></a>
