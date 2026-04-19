@@ -263,7 +263,7 @@ class LambdaAutonomousAgent(tales.Agent):
     @property
     def params(self):
         return {
-            "agent_type": "lambda-autonomous",
+            "agent_type": "dora-auto-explore",
             "llm": self.llm,
             "scoring_model": self.scoring_model_id,
             "seed": self.seed,
@@ -1041,7 +1041,7 @@ def build_argparser(parser=None):
 
 
 register(
-    name="lambda-autonomous",
+    name="dora-auto-explore",
     desc=(
         "Autonomous controller agent: model emits strict JSON each step to decide"
         " GREEDY vs EXPLORE mode. In explore mode, model also chooses bounded"
