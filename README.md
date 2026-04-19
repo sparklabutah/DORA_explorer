@@ -8,7 +8,7 @@
 </p>
 
 **TL;DR**  
-Research code for **DORA Explorer** — an inference time framework to better LLM exploration.  
+Research code for **DORA Explorer** — an inference-time framework to improve LLM exploration.  
 Includes:
 - **MAB** (bandits + baselines + LLM agents)  
 - **TALE-Suite agents** (text-based environments)
