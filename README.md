@@ -7,138 +7,106 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="license"/></a>
 </p>
 
-**tldr.** Research code for **DORA Explorer** (Diversity-Oriented Ranking of Actions): a **Bernoulli multi-armed bandit (MAB)** stack with LLM agents and classical baselines, and **custom agents** on top of [Microsoft TALE-Suite](https://github.com/microsoft/tale-suite) (text-adventure environments). DORA uses **token-level scoring** (mean log-probability and variance) plus a **λ schedule** or **auto-λ** to balance exploration and exploitation. **Project page:** [dora-explore.github.io](https://dora-explore.github.io/).
-
----
-
-## Table of contents
-
-- [Installation](#installation)
-- [Repository layout](#repository-layout)
-- [Multi-armed bandit (mab)](#multi-armed-bandit-mab)
-- [TALE-Suite (tale-suite)](#tale-suite-tale-suite)
-- [Analysis and figures](#analysis-and-figures)
-- [Citation](#citation)
+**tldr.** Research code for **DORA Explorer** — a **multi-armed bandit** stack with LLM agents and classical baselines, plus **custom agents** on [Microsoft TALE-Suite](https://github.com/microsoft/tale-suite) (text-adventure environments). DORA uses **token-level scoring** (mean log-prob + variance) with a **lambda schedule** or **auto-lambda** to balance exploration vs exploitation. **Project page:** [dora-explore.github.io](https://dora-explore.github.io/).
 
 ---
 
 ## Installation
 
-**Python:** use **3.12+** at the repo root so `pip install -e tale-suite/` matches [`tale-suite/pyproject.toml`](tale-suite/pyproject.toml) (`requires-python >= 3.12`). The MAB code runs on 3.12 as well.
+> **Requirements:** Python **3.12+**, CUDA GPU for LLM agents, [Hugging Face](https://huggingface.co/) token for gated models.
 
-**Dependency files (kept separate):**
-
-| File | Scope |
-|------|--------|
-| [`mab/requirements.txt`](mab/requirements.txt) | NumPy, PyTorch, Transformers, plotting, etc., for bandit experiments only. |
-| [`tale-suite/requirements.txt`](tale-suite/requirements.txt) | Gymnasium, game stacks, `llm` plugins, **torch**, **tqdm**, etc., for TALE benchmarks (pulled in by `pip install -e tale-suite/`). |
-| [`requirements.txt`](requirements.txt) (repo root) | Thin wrapper: `-r mab/requirements.txt` only. |
-
-### Conda (optional)
-
-[`environment.yml`](environment.yml) is **optional**: it pins **Python 3.12** and base packaging tools for a reproducible conda env on clusters (same idea as [TimeWarp](https://github.com/sparklabutah/timewarp)). If you prefer **venv + pip only**, skip conda and use the manual commands below.
-
-With conda, from the repository root:
+### Option A — Conda (recommended)
 
 ```sh
 bash setup.sh
 ```
 
-This creates the `dora-paper-code` environment, runs `pip install -e .` (MAB deps from [`pyproject.toml`](pyproject.toml)), then `pip install -e tale-suite/`.
+Creates the `dora-paper-code` env, installs MAB deps and TALE-Suite in editable mode.
 
-⚠️ **GPU / models:** MAB LLM runs need a CUDA-capable machine and a [Hugging Face](https://huggingface.co/) token for gated models. TALE-Suite agents need API keys for your chosen LLM backend (`llm` package) plus HF access for the scoring model when using lambda agents. ⚠️
-
-### Environment variables (MAB)
-
-| Variable | Description |
-|----------|-------------|
-| `HF_TOKEN` | Hugging Face Hub token (also accepts `HUGGING_FACE_HUB_TOKEN` in some tools). |
-| `HF_MODEL` | Model id for generation in `mab/agents/llm.py` (default: `meta-llama/Llama-3.1-8B-Instruct`). |
-| `SCORING_MODEL` | Optional override for the scoring model in `mab/score.py` (defaults to `HF_MODEL`). |
-
-Place tokens in a `.env` file in the directory from which you run scripts, or export them in your shell.
-
-### Manual install (venv / pip, no conda)
+### Option B — pip / venv
 
 ```sh
 python3.12 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r mab/requirements.txt          # MAB only
-# Optional: editable root meta-package (same deps as mab/requirements.txt)
-pip install -e .
-# For TALE benchmarks:
-pip install -e tale-suite/
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e .                 # MAB dependencies
+pip install -e tale-suite/       # TALE-Suite dependencies
 ```
+
+### Environment variables
+
+Create a `.env` file or export these in your shell:
+
+```sh
+HF_TOKEN=<your-huggingface-token>
+HF_MODEL=meta-llama/Llama-3.1-8B-Instruct   # generation model (MAB)
+SCORING_MODEL=                                # scoring model override (defaults to HF_MODEL)
+```
+
+TALE-Suite agents also need API keys for your chosen LLM backend (e.g. `OPENAI_API_KEY`).
 
 ---
 
 ## Repository layout
 
-| Path | Role |
-|------|------|
-| [`mab/`](mab/) | Bandit environment, baselines, DORA policy, runners, plotting. |
-| [`tale-suite/`](tale-suite/) | TALE-Suite fork with custom `agents/*.py` and `benchmark.py`. |
-| [`setup.sh`](setup.sh) | Conda env + editable installs (same role as in [TimeWarp](https://github.com/sparklabutah/timewarp)). |
-| [`environment.yml`](environment.yml) | **Optional** conda env (Python 3.12); skip if you use venv only. |
-| [`pyproject.toml`](pyproject.toml) | Package metadata and MAB dependency pins. |
+```
+.
+├── mab/                  # Bandit environment, baselines, DORA policy, runners
+├── tale-suite/           # TALE-Suite fork with custom agents and benchmark.py
+├── setup.sh              # Conda env + editable installs
+├── environment.yml       # Optional conda env spec (Python 3.12)
+└── pyproject.toml        # Package metadata and MAB dependency pins
+```
 
 ---
 
-## Multi-armed bandit (mab)
+## Multi-armed bandit (MAB)
 
 ### Quick start
-
-From `mab/` after activating the environment:
 
 ```sh
 cd mab
 
-# classical baselines (UCB, TS, Greedy, ε-Greedy) — 1000 episodes, no GPU
-python run.py baselines
-
-# DORA lambda policy (generate → score → λ-softmax) — requires GPU
-python run.py dora
-
-# scheduled temperature decay (high → low) LLM agent — requires GPU
-python run.py scheduled-temp
-
-# fixed-temperature sweep for the zero-shot LLM agent — requires GPU
-python run.py temperature-sweep
+python run.py baselines          # UCB, TS, Greedy, epsilon-Greedy (no GPU)
+python run.py dora               # DORA lambda policy (GPU)
+python run.py scheduled-temp     # temperature schedule baseline (GPU)
+python run.py temperature-sweep  # fixed-temperature sweep (GPU)
 ```
 
 All sub-commands accept `--horizon`, `--replicates`, `--K`, `--delta`.
-Agent-specific flags (e.g. `--alpha`, `--temp-start`, `--temperatures`) are shown by `python run.py <cmd> -h`.
+Run `python run.py <cmd> -h` for agent-specific flags.
 
 ### Module map
 
 | File | Description |
 |------|-------------|
-| `bandit_env.py` | K-armed Bernoulli bandit. |
-| `agents/baselines.py` | UCB, Thompson Sampling, Greedy, ε-Greedy. |
-| `agents/llm.py` | Zero-shot LLM bandit agent (`LLMBanditAgent`) and `query_llm`. |
-| `score.py` | Token-level scoring for candidate answer strings. |
-| `agents/dora_lambda_schedule.py` | DORA: generate N candidates → filter → score → scheduled-λ softmax. |
-| `agents/scheduled_temp.py` | Scheduled temperature over the horizon. |
-| `prompts.py`, `evaluation.py` | Prompts (incl. candidate generation) and evaluation metrics. |
-| `run.py` | Unified CLI: sub-commands `baselines`, `dora`, `scheduled-temp`, `temperature-sweep`. |
+| `bandit_env.py` | K-armed Bernoulli bandit environment. |
+| `agents/baselines.py` | UCB, Thompson Sampling, Greedy, epsilon-Greedy. |
+| `agents/llm.py` | Zero-shot LLM bandit agent and `query_llm`. |
+| `agents/dora_lambda_schedule.py` | DORA: candidates -> score -> scheduled-lambda softmax. |
+| `agents/scheduled_temp.py` | Scheduled temperature decay over horizon. |
+| `score.py` | Token-level log-prob and variance scoring. |
+| `prompts.py` | Prompt templates (incl. candidate generation). |
+| `evaluation.py` | Evaluation metrics. |
+| `run.py` | Unified CLI entry point. |
 
 ---
 
-## TALE-Suite (tale-suite)
+## TALE-Suite
 
-Upstream benchmark: [microsoft/tale-suite](https://github.com/microsoft/tale-suite). This tree includes additional registered agents, for example:
+Upstream: [microsoft/tale-suite](https://github.com/microsoft/tale-suite). This fork adds three exploration agents:
 
-| CLI name | Module | Idea |
-|----------|--------|------|
-| `lambda-explore` | `agents/dora_lambda_schedule.py` | Candidate generation + scoring + scheduled λ sampling. |
-| `lambda-autonomous` | `agents/dora_auto_explore.py` | GREEDY vs EXPLORE + model-chosen λ. |
-| `scheduled-temp` | `agents/scheduled_temp_llm.py` | Exponential temperature schedule baseline. |
+| CLI name | Module | Description |
+|----------|--------|-------------|
+| `dora-schedule` | `agents/dora_schedule.py` | Candidate generation + scoring + scheduled lambda sampling. |
+| `dora-auto-explore` | `agents/dora_auto_explore.py` | GREEDY vs EXPLORE + model-chosen lambda. |
+| `scheduled-temp` | `agents/scheduled_temp.py` | Exponential temperature schedule baseline. |
 
-Example (after `pip install -e tale-suite/`):
+### Quick start
 
 ```sh
 cd tale-suite
-python benchmark.py lambda-autonomous \
+
+python benchmark.py dora-auto-explore \
   --llm gpt-4o-mini \
   --scoring-model meta-llama/Llama-3.1-8B-Instruct \
   --conversation \
@@ -146,26 +114,18 @@ python benchmark.py lambda-autonomous \
   --nb-steps 100
 ```
 
-See [`tale-suite/README.md`](tale-suite/README.md) for the upstream documentation.
-
----
-
-## Analysis and figures
-
-Outputs go under `mab/logs/` by default (ignored by `.gitignore`). Commit figures separately or attach them to the paper supplement.
+See [`tale-suite/README.md`](tale-suite/README.md) for upstream docs and full environment list.
 
 ---
 
 ## Citation
 
-If you use this code, please cite **your paper** (update the BibTeX when the arXiv / proceedings entry is available) and the **TALE-Suite** / environment papers you rely on.
-
-### This work (placeholder)
+If you find this repository useful please cite us.
 
 ```bibtex
 @misc{dora2026placeholder,
-  title        = {TITLE: Directed Exploration via Token-Level Scoring},
-  author       = {YOUR AUTHORS},
+  title        = {},
+  author       = {AUTHORS},
   year         = {2026},
   eprint       = {XXXX.XXXXX},
   archivePrefix = {arXiv},
@@ -174,14 +134,16 @@ If you use this code, please cite **your paper** (update the BibTeX when the arX
 }
 ```
 
-### TALE-Suite (check their README for the official citation)
+Please also cite the original TALES paper:
 
 ```bibtex
-% Add citation from https://github.com/microsoft/tale-suite
+@article{cui2025tales,
+  title   = {TALES: Text-Adventure Learning Environment Suite},
+  author  = {Christopher Cui and Xingdi Yuan and Ziang Xiao and
+             Prithviraj Ammanabrolu and Marc-Alexandre C\^ot\'e},
+  journal = {arXiv preprint arXiv:2504.14128},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2504.14128}
+}
 ```
 
----
-
-## Acknowledgments
-
-The [**DORA Explorer**](https://dora-explore.github.io/) project page accompanies this repository. Layout and release ergonomics follow the style of [**TimeWarp**](https://github.com/sparklabutah/timewarp) (badges, `tldr.`, table of contents, `setup.sh` + `environment.yml`, and a `scripts/` helper directory). The interactive text benchmark builds on [**TALE-Suite**](https://github.com/microsoft/tale-suite).
