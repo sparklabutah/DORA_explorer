@@ -184,7 +184,7 @@ class LambdaExploreAgent(tales.Agent):
     @property
     def params(self):
         return {
-            "agent_type": "lambda-explore",
+            "agent_type": "dora-schedule",
             "llm": self.llm,
             "scoring_model": self.scoring_model_id,
             "seed": self.seed,
@@ -647,7 +647,7 @@ def build_argparser(parser=None):
 
 
 register(
-    name="lambda-explore",
+    name="dora-schedule",
     desc=(
         "Generative lambda exploration policy: prompts the LLM to generate candidate"
         " actions, filters duplicates/invalids, scores survivors using token"
