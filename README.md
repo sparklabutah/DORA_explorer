@@ -7,7 +7,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="license"/></a>
 </p>
 
-**tldr.** Research code for **DORA Explorer** — a **multi-armed bandit** stack with LLM agents and classical baselines, plus **custom agents** on [Microsoft TALE-Suite](https://github.com/microsoft/tale-suite) (text-adventure environments). DORA uses **token-level scoring** (mean log-prob + variance) with a **lambda schedule** or **auto-lambda** to balance exploration vs exploitation. **Project page:** [dora-explore.github.io](https://dora-explore.github.io/).
+**TL;DR**  
+Research code for **DORA Explorer** — an inference time framework to better LLM exploration.  
+Includes:
+- **MAB** (bandits + baselines + LLM agents)  
+- **TALE-Suite agents** (text-based environments)
 
 ---
 
