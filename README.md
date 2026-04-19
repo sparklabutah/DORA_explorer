@@ -2,8 +2,6 @@
 
 <p align="center">
   <a href="https://dora-explore.github.io/"><img src="https://img.shields.io/badge/Project%20Page-dora--explore.github.io-4285F4?style=flat&logo=homeassistant&logoColor=white&color=006A4E&labelColor=gray" alt="Project page"/></a>
-  <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-TBD-b31b1b.svg?logo=arxiv&labelColor=FFFFFF&logoColor=b31b1b" alt="arXiv"/></a>
-  <a href="https://github.com/sparklabutah/DORA_explorer"><img src="https://img.shields.io/badge/GitHub-sparklabutah%2FDORA__explorer-blue?logo=GitHub&labelColor=black" alt="GitHub"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="license"/></a>
 </p>
 
