@@ -21,7 +21,7 @@ def load_model():
 
     model = AutoModelForCausalLM.from_pretrained(
         HF_MODEL,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         device_map="auto",
         low_cpu_mem_usage=True,
         token=HF_TOKEN,
@@ -69,7 +69,6 @@ def parse_candidate_line(line: str) -> Optional[int]:
     if not line or not str(line).strip():
         return None
     s = str(line).strip()
-    # Strip common list prefixes: "1.", "-", etc.
     s = s.lstrip("0123456789.-) ").strip()
     idx = parse_bandit_color_strict(s)
     if idx is not None:
@@ -78,15 +77,29 @@ def parse_candidate_line(line: str) -> Optional[int]:
     return parse_bandit_color_strict(wrapped)
 
 
-@torch.no_grad()
-def query_llm(system_prompt, user_prompt, temperature, max_new_tokens=50):
+def _build_prompt(system_prompt: str, user_prompt: str) -> str:
+    """
+    Build a prompt with chat templating when available.
+    Falls back to a plain concatenated prompt when tokenizer.chat_template is missing.
+    """
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
     ]
-    prompt = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
+
+    if getattr(tokenizer, "chat_template", None):
+        return tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+
+    return f"{system_prompt}\n\n{user_prompt}\n"
+
+
+@torch.no_grad()
+def query_llm(system_prompt, user_prompt, temperature, max_new_tokens=50):
+    prompt = _build_prompt(system_prompt, user_prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     t = float(temperature)
 
@@ -132,3 +145,4 @@ class LLMBanditAgent:
             max_new_tokens=max_new_tokens,
         )
         return parse_bandit_color_strict(response), response
+
