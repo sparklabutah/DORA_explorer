@@ -279,7 +279,8 @@ class LambdaExploreAgent(tales.Agent):
                 candidates.append(cleaned)
         return candidates
 
-    def _filter_candidates(self, candidates, admissible):
+    def _filter_candidates(self, candidates):
+        """Dedup only; do not filter by admissible commands."""
         seen = set()
         unique = []
         for c in candidates:
@@ -287,10 +288,6 @@ class LambdaExploreAgent(tales.Agent):
             if key and key not in seen:
                 seen.add(key)
                 unique.append(c)
-
-        if admissible:
-            admissible_lower = {a.lower().strip() for a in admissible}
-            unique = [c for c in unique if c.lower().strip() in admissible_lower]
 
         if len(unique) > self.max_action_space:
             indices = self.rng.choice(len(unique), size=self.max_action_space, replace=False)
@@ -455,10 +452,9 @@ class LambdaExploreAgent(tales.Agent):
 
     def act(self, obs, reward, done, infos):
         messages = self.build_messages(f"{obs}\n> ")
-        admissible = infos.get("admissible_commands") or []
 
         raw_candidates = self._generate_candidates(messages)
-        filtered = self._filter_candidates(raw_candidates, admissible)
+        filtered = self._filter_candidates(raw_candidates)
         used_lambda_policy = len(filtered) >= 2
 
         if used_lambda_policy:
@@ -650,7 +646,7 @@ register(
     name="dora-schedule",
     desc=(
         "Generative lambda exploration policy: prompts the LLM to generate candidate"
-        " actions, filters duplicates/invalids, scores survivors using token"
+        " actions, filters duplicates, scores survivors using token"
         " log-probability and variance, then samples via an exponential lambda schedule."
     ),
     klass=LambdaExploreAgent,

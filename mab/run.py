@@ -439,8 +439,8 @@ def main() -> None:
     p_dora.add_argument("--beta", type=float, default=0.2)
     p_dora.add_argument("--lambda-start", type=float, default=0.0)
     p_dora.add_argument("--lambda-end", type=float, default=40.0)
-    p_dora.add_argument("--lambda-k", type=float, default=7.0)
-    p_dora.add_argument("--num-candidates", type=int, default=10)
+    p_dora.add_argument("--lambda-k", type=float, default=5.0)
+    p_dora.add_argument("--num-candidates", type=int, default=20)
     p_dora.add_argument("--gen-temp", type=float, default=0.7)
     p_dora.add_argument("--raw-history", action="store_true", help="Use raw history prompt instead of summary")
 

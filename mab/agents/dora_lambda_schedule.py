@@ -53,7 +53,7 @@ class LambdaPolicyLLMAgent:
         lambda_end: float = 40.0,
         lambda_k: float = 5.0,
         micro_batch_size: int = 2,
-        num_candidates: int = 10,
+        num_candidates: int = 20,
         gen_temp: float = 0.7,
         gen_max_new_tokens: int = 500,
         seed: Optional[int] = None,

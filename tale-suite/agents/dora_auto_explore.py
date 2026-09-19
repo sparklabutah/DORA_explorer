@@ -27,7 +27,7 @@ from tales.utils import (
 )
 
 LAMBDA_MIN_DEFAULT = 0.0
-LAMBDA_MAX_DEFAULT = 5.0
+LAMBDA_MAX_DEFAULT = 10.0
 EXPLORE_NUM_CANDIDATES = 20
 
 TALES_LAMBDA_MIN_ENV = "TALES_LAMBDA_MIN"
@@ -371,7 +371,8 @@ class LambdaAutonomousAgent(tales.Agent):
             re.match(r"^[A-Za-z0-9][A-Za-z0-9 '\-_,.?/():]*$", cmd) is not None
         )
 
-    def _filter_candidates(self, candidates, admissible):
+    def _filter_candidates(self, candidates):
+        """Dedup and format-check only; do not filter by admissible commands."""
         seen = set()
         unique = []
         for c in candidates:
@@ -381,17 +382,7 @@ class LambdaAutonomousAgent(tales.Agent):
                 unique.append(c)
 
         format_valid = [c for c in unique if self._is_valid_command_format(c)]
-        admissible_applied = bool(admissible)
-
-        if admissible_applied:
-            admissible_lower = {a.lower().strip() for a in admissible}
-            admissible_valid = [
-                c for c in format_valid if c.lower().strip() in admissible_lower
-            ]
-        else:
-            admissible_valid = format_valid
-
-        final = admissible_valid
+        final = format_valid
         if len(final) > self.max_action_space:
             indices = self.rng.choice(len(final), size=self.max_action_space, replace=False)
             final = [final[i] for i in sorted(indices)]
@@ -400,8 +391,6 @@ class LambdaAutonomousAgent(tales.Agent):
             "raw_generated_count": len(candidates),
             "dedup_count": len(unique),
             "format_valid_count": len(format_valid),
-            "admissible_filter_applied": admissible_applied,
-            "admissible_valid_count": len(admissible_valid),
             "final_filtered_count": len(final),
         }
         return final, counts
@@ -691,9 +680,9 @@ class LambdaAutonomousAgent(tales.Agent):
     # Exploration path
     # ------------------------------------------------------------------
 
-    def _explore(self, messages, obs_hash, lambda_value, admissible):
+    def _explore(self, messages, obs_hash, lambda_value):
         raw_candidates = self._generate_candidates(messages)
-        filtered, filter_counts = self._filter_candidates(raw_candidates, admissible)
+        filtered, filter_counts = self._filter_candidates(raw_candidates)
         tried = self.obs_tried.get(obs_hash, set())
         novel = [c for c in filtered if c.lower().strip() not in tried]
         # If every filtered candidate was already tried at this observation, do not
@@ -710,8 +699,6 @@ class LambdaAutonomousAgent(tales.Agent):
                 "raw_generated_count": filter_counts["raw_generated_count"],
                 "dedup_count": filter_counts["dedup_count"],
                 "format_valid_count": filter_counts["format_valid_count"],
-                "admissible_filter_applied": filter_counts["admissible_filter_applied"],
-                "admissible_valid_count": filter_counts["admissible_valid_count"],
                 "final_filtered_count": filter_counts["final_filtered_count"],
             }
             return None, explore
@@ -726,8 +713,6 @@ class LambdaAutonomousAgent(tales.Agent):
             "raw_generated_count": filter_counts["raw_generated_count"],
             "dedup_count": filter_counts["dedup_count"],
             "format_valid_count": filter_counts["format_valid_count"],
-            "admissible_filter_applied": filter_counts["admissible_filter_applied"],
-            "admissible_valid_count": filter_counts["admissible_valid_count"],
             "final_filtered_count": filter_counts["final_filtered_count"],
         }
 
@@ -768,7 +753,6 @@ class LambdaAutonomousAgent(tales.Agent):
 
         messages = self.build_messages(f"{obs}\n> ")
         obs_hash = hash(obs.strip())
-        admissible = infos.get("admissible_commands") or []
 
         mode_decision = self._decide_mode(messages)
         lambda_decision = {
@@ -790,8 +774,6 @@ class LambdaAutonomousAgent(tales.Agent):
             "raw_generated_count": 0,
             "dedup_count": 0,
             "format_valid_count": 0,
-            "admissible_filter_applied": False,
-            "admissible_valid_count": 0,
             "final_filtered_count": 0,
         }
         mode_used = mode_decision["mode_used"]
@@ -808,7 +790,6 @@ class LambdaAutonomousAgent(tales.Agent):
                     messages,
                     obs_hash=obs_hash,
                     lambda_value=lambda_decision["lambda_used"],
-                    admissible=admissible,
                 )
                 if action is None:
                     mode_used = "GREEDY_FALLBACK"
@@ -874,8 +855,6 @@ class LambdaAutonomousAgent(tales.Agent):
             "raw_generated_count": explore["raw_generated_count"],
             "dedup_count": explore["dedup_count"],
             "format_valid_count": explore["format_valid_count"],
-            "admissible_filter_applied": explore["admissible_filter_applied"],
-            "admissible_valid_count": explore["admissible_valid_count"],
             "filtered_candidates_count": len(explore["filtered_candidates"]),
             "final_filtered_count": explore["final_filtered_count"],
             "novel_candidates_count": len(explore["novel_candidates"]),
@@ -946,7 +925,7 @@ def build_argparser(parser=None):
     group.add_argument(
         "--decision-temp",
         type=float,
-        default=0.0,
+        default=0.2,
         help="Temperature for autonomous mode/lambda JSON decision call. Default: %(default)s",
     )
     group.add_argument(
